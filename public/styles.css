@@ -221,6 +221,84 @@ footer {
     color: #777;
     font-size: 0.9rem;
 }
+/* Server list styles */
+.servers-container {
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(30, 30, 30, 0.7);
+    border-radius: 8px;
+}
+
+.server-details {
+    margin-bottom: 20px;
+}
+
+.server-details h4 {
+    color: var(--primary-color);
+    margin-bottom: 10px;
+    font-size: 1rem;
+}
+
+.server-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+}
+
+.server-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.server-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+.server-count {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.toggle-servers-btn {
+    background: var(--button-bg);
+    color: var(--text-color);
+    border: none;
+    padding: 8px 15px;
+    margin-top: 10px;
+    cursor: pointer;
+    border-radius: 20px;
+    font-size: 0.9em;
+    transition: background 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.toggle-servers-btn:hover {
+    background: var(--button-hover);
+}
+
+.toggle-servers-btn i {
+    transition: transform 0.3s;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .server-list {
+        grid-template-columns: 1fr;
+    }
+    
+    .server-name {
+        max-width: none;
+    }
+}
 
 /* Responsive */
 @media (max-width: 768px) {
