@@ -1,12 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Roblox Player Tracker</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Vril Hyperborea Tracker | Player Counts</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>Game of Thrones Roblox Player Counts</h1>
-  <div id="regions"></div>
-  <script src="script.js"></script>
+    <div class="container">
+        <h1><i class="fas fa-gamepad"></i>Region Player Counts</h1>
+        
+        <div class="info-text">
+            <i class="fas fa-info-circle"></i> Data updates every 60 seconds
+        </div>
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="summary-card">
+                    <div class="circle-container">
+                        <svg width="120" height="120" viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="50" class="circle-bg"></circle>
+                            <circle cx="60" cy="60" r="50" class="circle" 
+                                    stroke-dasharray="314" stroke-dashoffset="314"></circle>
+                        </svg>
+                        <div class="percentage">0%</div>
+                    </div>
+                    <div class="stats">
+                        <div class="total-players">0</div>
+                        <div class="label">Total Players</div>
+                    </div>
+                </div>
+                
+                <div class="last-updated">
+                    <i class="fas fa-clock"></i> Last updated: <span id="update-time">Just now</span>
+                </div>
+                
+                <div class="sidebar-links">
+                    <a href="#" class="refresh-btn">
+                        <i class="fas fa-sync-alt"></i> Refresh Data
+                    </a>
+                    <a href="https://github.com/yourusername/roblox-tracker" target="_blank">
+                        <i class="fab fa-github"></i> View on GitHub
+                    </a>
+                </div>
+            </div>
+            
+            <div class="regions-container" id="regions">
+                <!-- Regions will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2023 Roblox Region Tracker | Data from Roblox API</p>
+    </footer>
+
+    <script src="script.js"></script>
 </body>
 </html>
