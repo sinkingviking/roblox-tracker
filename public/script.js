@@ -55,61 +55,114 @@ const gamesData = {
     ]
 };
 
+// DOM Elements
 const regionsContainer = document.getElementById('regions');
 const totalPlayersEl = document.querySelector('.total-players');
 const percentageEl = document.querySelector('.percentage');
 const updateTimeEl = document.getElementById('update-time');
-const refreshBtn = document.querySelector('.refresh-btn');
+const refreshBtn = document.getElementById('refresh-btn');
+const updateStatusEl = document.getElementById('update-status');
+const showEmptyCheckbox = document.getElementById('show-empty');
 
+// State
 let animationDelay = 0;
-let totalGames = 0;
+let totalGames = Object.values(gamesData).flat().length;
 let successfulFetches = 0;
+let isRefreshing = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    totalGames = Object.values(gamesData).flat().length;
     fetchAllData();
-    setInterval(fetchAllData, 60000); 
+    setInterval(fetchAllData, 60000); // Refresh every 60 seconds
 });
 
+// Event Listeners
 refreshBtn.addEventListener('click', () => {
-    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
-    fetchAllData();
+    if (!isRefreshing) {
+        fetchAllData();
+    }
+});
+
+showEmptyCheckbox.addEventListener('change', () => {
+    document.querySelectorAll('.server-item').forEach(item => {
+        const players = parseInt(item.querySelector('.server-count').textContent);
+        if (players === 0) {
+            item.style.display = showEmptyCheckbox.checked ? 'flex' : 'none';
+        }
+    });
 });
 
 async function fetchAllData() {
+    if (isRefreshing) return;
+    isRefreshing = true;
+    refreshBtn.classList.add('refreshing');
+    
     try {
         const startTime = Date.now();
-        updateTimeEl.textContent = "Updating...";
+        updateStatusEl.textContent = "Updating data...";
+        updateTimeEl.textContent = "Refreshing...";
         
+        // Reset UI
         regionsContainer.innerHTML = '';
         animationDelay = 0;
         successfulFetches = 0;
         
         let totalPlayers = 0;
         
+        // Show loading skeletons
+        Object.keys(gamesData).forEach(region => {
+            const regionCard = createRegionSkeleton(region);
+            regionsContainer.appendChild(regionCard);
+        });
+        
+        // Fetch data for each region in parallel
         const regionPromises = Object.entries(gamesData).map(
             async ([region, games]) => {
                 const regionPlayers = await fetchRegionData(region, games);
                 totalPlayers += regionPlayers;
+                return regionPlayers;
             }
         );
         
-        await Promise.all(regionPromises);
+        const regionResults = await Promise.all(regionPromises);
+        totalPlayers = regionResults.reduce((sum, count) => sum + count, 0);
         
         // Update totals
         totalPlayersEl.textContent = totalPlayers.toLocaleString();
         const percentage = Math.round((successfulFetches / totalGames) * 100);
         percentageEl.textContent = `${percentage}%`;
+        
+        // Update circle animation
         updateProgressCircle(percentage);
-        updateTimeEl.textContent = new Date().toLocaleTimeString();
-        refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Data';
+        
+        // Update timestamp
+        const endTime = Date.now();
+        const updateTime = new Date(endTime).toLocaleTimeString();
+        updateTimeEl.textContent = updateTime;
+        updateStatusEl.textContent = `Last updated at ${updateTime}`;
         
     } catch (error) {
         console.error("Error fetching data:", error);
-        updateTimeEl.textContent = "Error updating";
-        refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Data';
+        updateStatusEl.textContent = "Error updating data";
+        updateTimeEl.textContent = "Error";
+    } finally {
+        isRefreshing = false;
+        refreshBtn.classList.remove('refreshing');
     }
+}
+
+function createRegionSkeleton(regionName) {
+    const regionCard = document.createElement('div');
+    regionCard.className = 'region-card loading-skeleton';
+    regionCard.innerHTML = `
+        <div class="region-header">
+            <div class="region-name">${regionName}</div>
+            <div class="region-count">Loading...</div>
+        </div>
+        <div class="game-item loading-skeleton" style="height: 20px; width: 100%;"></div>
+        <div class="game-item loading-skeleton" style="height: 20px; width: 100%; margin-top: 8px;"></div>
+    `;
+    return regionCard;
 }
 
 async function fetchRegionData(regionName, games) {
@@ -117,6 +170,7 @@ async function fetchRegionData(regionName, games) {
     const regionCard = document.createElement('div');
     regionCard.className = 'region-card';
     
+    // Create region header
     const regionHeader = document.createElement('div');
     regionHeader.className = 'region-header';
     regionHeader.innerHTML = `
@@ -125,24 +179,22 @@ async function fetchRegionData(regionName, games) {
     `;
     regionCard.appendChild(regionHeader);
     
-    const serversContainer = document.createElement('div');
-    serversContainer.className = 'servers-container';
-    serversContainer.style.display = 'none';
-    regionCard.appendChild(serversContainer);
+    // Create games container
+    const gamesContainer = document.createElement('div');
+    gamesContainer.className = 'games-container';
+    regionCard.appendChild(gamesContainer);
     
-    const toggleBtn = document.createElement('button');
-    toggleBtn.className = 'toggle-servers-btn';
-    toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i> Show Servers';
-    toggleBtn.addEventListener('click', () => toggleServers(serversContainer, toggleBtn));
-    regionCard.appendChild(toggleBtn);
+    // Add to DOM
     regionsContainer.appendChild(regionCard);
     
+    // Fetch each game in the region
     const gamePromises = games.map(async (game, index) => {
         try {
             const { totalPlayers, servers } = await fetchGameServers(game.id);
             successfulFetches++;
             regionPlayers += totalPlayers;
-
+            
+            // Create game item
             const gameItem = document.createElement('div');
             gameItem.className = 'game-item';
             gameItem.style.animationDelay = `${animationDelay + (index * 0.05)}s`;
@@ -150,22 +202,13 @@ async function fetchRegionData(regionName, games) {
                 <div class="game-name">${game.name}</div>
                 <div class="game-players">${totalPlayers.toLocaleString()}</div>
             `;
-            regionHeader.nextElementSibling.appendChild(gameItem);
+            gamesContainer.appendChild(gameItem);
             
-            const serverDetails = document.createElement('div');
-            serverDetails.className = 'server-details';
-            serverDetails.innerHTML = `
-                <h4>${game.name} Servers</h4>
-                <div class="server-list">
-                    ${servers.map(server => `
-                        <div class="server-item">
-                            <span class="server-name">${server.name || 'Unnamed Server'}</span>
-                            <span class="server-count">${server.playing} players</span>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-            serversContainer.appendChild(serverDetails);
+            // Create server details if there are servers
+            if (servers.length > 0) {
+                const serverDetails = createServerDetails(game.name, servers);
+                gamesContainer.appendChild(serverDetails);
+            }
             
             return totalPlayers;
         } catch (error) {
@@ -177,45 +220,82 @@ async function fetchRegionData(regionName, games) {
     await Promise.all(gamePromises);
     animationDelay += games.length * 0.05;
     
+    // Update region count
     regionHeader.querySelector('.region-count').textContent = 
         `${regionPlayers.toLocaleString()} players`;
     return regionPlayers;
 }
 
+function createServerDetails(gameName, servers) {
+    const container = document.createElement('div');
+    container.className = 'servers-container';
+    
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'toggle-servers-btn';
+    toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i> Show Servers';
+    toggleBtn.addEventListener('click', () => {
+        container.classList.toggle('active');
+        toggleBtn.innerHTML = container.classList.contains('active') 
+            ? '<i class="fas fa-chevron-up"></i> Hide Servers' 
+            : '<i class="fas fa-chevron-down"></i> Show Servers';
+    });
+    container.appendChild(toggleBtn);
+    
+    const serverDetails = document.createElement('div');
+    serverDetails.className = 'server-details';
+    
+    const header = document.createElement('h4');
+    header.innerHTML = `
+        ${gameName} Servers
+        <span>${servers.length} server${servers.length !== 1 ? 's' : ''}</span>
+    `;
+    serverDetails.appendChild(header);
+    
+    const serverList = document.createElement('div');
+    serverList.className = 'server-list';
+    
+    servers.forEach(server => {
+        const serverItem = document.createElement('div');
+        serverItem.className = `server-item ${server.playing > 0 ? 'active' : ''}`;
+        serverItem.style.display = server.playing > 0 || showEmptyCheckbox.checked ? 'flex' : 'none';
+        serverItem.innerHTML = `
+            <span class="server-name" title="${server.name}">${server.name}</span>
+            <div>
+                <span class="server-count">${server.playing}</span>
+                <span class="server-ping">${server.ping}ms</span>
+            </div>
+        `;
+        serverList.appendChild(serverItem);
+    });
+    
+    serverDetails.appendChild(serverList);
+    container.appendChild(serverDetails);
+    
+    return container;
+}
+
 async function fetchGameServers(gameId) {
     try {
-        const url = `https://games.roblox.com/v1/games/${gameId}/servers/Public/0?sortOrder=Asc&limit=100`;
-        const response = await fetch(url);
+        const response = await fetch(`/.netlify/functions/fetchRobloxData?gameId=${gameId}`);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
-        const servers = data.data || [];
+        
+        // Handle error response from proxy
+        if (data.error) {
+            throw new Error(data.error);
+        }
         
         return {
-            totalPlayers: servers.reduce((sum, server) => sum + server.playing, 0),
-            servers: servers.map(server => ({
-                name: server.name,
-                playing: server.playing,
-                maxPlayers: server.maxPlayers,
-                id: server.id
-            }))
+            totalPlayers: data.totalPlayers || 0,
+            servers: data.servers || []
         };
     } catch (error) {
         console.error(`Failed to fetch servers for game ${gameId}:`, error);
-        throw error;
-    }
-}
-
-function toggleServers(container, button) {
-    if (container.style.display === 'none') {
-        container.style.display = 'block';
-        button.innerHTML = '<i class="fas fa-chevron-up"></i> Hide Servers';
-    } else {
-        container.style.display = 'none';
-        button.innerHTML = '<i class="fas fa-chevron-down"></i> Show Servers';
+        return { totalPlayers: 0, servers: [] };
     }
 }
 
@@ -224,14 +304,4 @@ function updateProgressCircle(percentage) {
     const circumference = 314; // 2 * π * r (where r=50)
     const offset = circumference - (percentage / 100) * circumference;
     circle.style.strokeDashoffset = offset;
-}
-
-// Error handling
-function handleRobloxAPIError(error) {
-    console.error("Roblox API Error:", error);
-    if (error.message.includes("429")) {
-        console.warn("Rate limited by Roblox API");
-        return { totalPlayers: 0, servers: [] };
-    }
-    throw error;
 }
