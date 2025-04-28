@@ -5,9 +5,12 @@
     --border-color: #333;
     --primary-color: #b7a0f6;
     --success-color: #44c638;
+    --warning-color: #ffaa00;
     --failure-color: #e64343;
     --button-bg: #1e1e1e;
     --button-hover: #555;
+    --server-active: rgba(183, 160, 246, 0.1);
+    --server-empty: rgba(255, 255, 255, 0.05);
 }
 
 body {
@@ -15,7 +18,7 @@ body {
     background-color: var(--bg-color);
     color: var(--text-color);
     margin: 0;
-    padding: 0;
+    padding: 20px;
     line-height: 1.6;
 }
 
@@ -23,18 +26,78 @@ body {
     width: 90%;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px;
 }
 
 h1 {
     color: var(--primary-color);
     text-align: center;
-    margin-bottom: 30px;
-    font-size: 2.2rem;
+    margin-bottom: 20px;
 }
 
 h1 i {
     margin-right: 10px;
+}
+
+.info-text {
+    background: rgba(183, 160, 246, 0.1);
+    padding: 12px;
+    border-radius: 8px;
+    margin: 0 auto 20px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    max-width: 800px;
+}
+
+.controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 15px;
+}
+
+.button {
+    background: var(--button-bg);
+    color: var(--text-color);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.3s;
+}
+
+.button:hover {
+    background: var(--button-hover);
+}
+
+.button i {
+    transition: transform 0.3s;
+}
+
+.button.refreshing i {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.stats-toggle {
+    font-size: 0.9em;
+}
+
+.stats-toggle label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
 }
 
 .main-content {
@@ -57,8 +120,8 @@ h1 i {
 }
 
 .region-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
 
 .region-header {
@@ -104,6 +167,79 @@ h1 i {
 .game-players {
     color: var(--primary-color);
     font-weight: 600;
+}
+
+.servers-container {
+    margin-top: 15px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.servers-container.active {
+    max-height: 1000px;
+}
+
+.server-details {
+    margin-bottom: 20px;
+}
+
+.server-details h4 {
+    color: var(--primary-color);
+    margin-bottom: 10px;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.server-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+}
+
+.server-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px;
+    background: var(--server-empty);
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.server-item.active {
+    background: var(--server-active);
+}
+
+.server-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+.server-count {
+    font-weight: 600;
+}
+
+.server-ping {
+    color: #aaa;
+    font-size: 0.8em;
+    margin-left: 8px;
+}
+
+.toggle-servers-btn {
+    background: transparent;
+    color: var(--primary-color);
+    border: none;
+    padding: 5px 10px;
+    margin-top: 10px;
+    cursor: pointer;
+    font-size: 0.8em;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
 .sidebar {
@@ -193,27 +329,6 @@ h1 i {
     background: var(--button-hover);
 }
 
-.sidebar-links i {
-    font-size: 1.2em;
-}
-
-.info-text {
-    background: rgba(183, 160, 246, 0.1);
-    padding: 12px;
-    border-radius: 8px;
-    margin: 0 auto 30px;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    max-width: 800px;
-}
-
-.info-text i {
-    color: var(--primary-color);
-}
-
 footer {
     text-align: center;
     padding: 20px;
@@ -221,83 +336,17 @@ footer {
     color: #777;
     font-size: 0.9rem;
 }
-/* Server list styles */
-.servers-container {
-    margin-top: 15px;
-    padding: 15px;
-    background: rgba(30, 30, 30, 0.7);
-    border-radius: 8px;
-}
 
-.server-details {
-    margin-bottom: 20px;
-}
-
-.server-details h4 {
-    color: var(--primary-color);
-    margin-bottom: 10px;
-    font-size: 1rem;
-}
-
-.server-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 8px;
-}
-
-.server-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px;
-    background: rgba(255, 255, 255, 0.05);
+/* Loading skeleton */
+.loading-skeleton {
+    animation: pulse 1.5s infinite ease-in-out;
+    background: rgba(255,255,255,0.1);
     border-radius: 4px;
-    font-size: 0.9rem;
 }
 
-.server-name {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 120px;
-}
-
-.server-count {
-    color: var(--primary-color);
-    font-weight: 600;
-}
-
-.toggle-servers-btn {
-    background: var(--button-bg);
-    color: var(--text-color);
-    border: none;
-    padding: 8px 15px;
-    margin-top: 10px;
-    cursor: pointer;
-    border-radius: 20px;
-    font-size: 0.9em;
-    transition: background 0.3s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.toggle-servers-btn:hover {
-    background: var(--button-hover);
-}
-
-.toggle-servers-btn i {
-    transition: transform 0.3s;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .server-list {
-        grid-template-columns: 1fr;
-    }
-    
-    .server-name {
-        max-width: none;
-    }
+@keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 0.3; }
 }
 
 /* Responsive */
@@ -313,5 +362,13 @@ footer {
     
     .regions-container {
         grid-template-columns: 1fr;
+    }
+    
+    .server-list {
+        grid-template-columns: 1fr;
+    }
+    
+    .server-name {
+        max-width: none;
     }
 }
