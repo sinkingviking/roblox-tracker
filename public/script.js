@@ -1,4 +1,3 @@
-// Complete game data with all regions and IDs
 const gamesData = {
     "NORTH": [
         { "name": "Winterkeep", "id": "18307684806" },
@@ -56,14 +55,12 @@ const gamesData = {
     ]
 };
 
-// DOM Elements
 const regionsContainer = document.getElementById('regions');
 const totalPlayersEl = document.querySelector('.total-players');
 const percentageEl = document.querySelector('.percentage');
 const updateTimeEl = document.getElementById('update-time');
 const refreshBtn = document.querySelector('.refresh-btn');
 
-// Animation delays
 let animationDelay = 0;
 let totalGames = 0;
 let successfulFetches = 0;
@@ -72,10 +69,9 @@ let successfulFetches = 0;
 document.addEventListener('DOMContentLoaded', () => {
     totalGames = Object.values(gamesData).flat().length;
     fetchAllData();
-    setInterval(fetchAllData, 60000); // Refresh every 60 seconds
+    setInterval(fetchAllData, 60000); 
 });
 
-// Event Listeners
 refreshBtn.addEventListener('click', () => {
     refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
     fetchAllData();
@@ -86,14 +82,12 @@ async function fetchAllData() {
         const startTime = Date.now();
         updateTimeEl.textContent = "Updating...";
         
-        // Reset UI
         regionsContainer.innerHTML = '';
         animationDelay = 0;
         successfulFetches = 0;
         
         let totalPlayers = 0;
         
-        // Fetch data for each region in parallel
         const regionPromises = Object.entries(gamesData).map(
             async ([region, games]) => {
                 const regionPlayers = await fetchRegionData(region, games);
@@ -107,17 +101,8 @@ async function fetchAllData() {
         totalPlayersEl.textContent = totalPlayers.toLocaleString();
         const percentage = Math.round((successfulFetches / totalGames) * 100);
         percentageEl.textContent = `${percentage}%`;
-        
-        // Update circle animation
-        const circle = document.querySelector('.circle');
-        const circumference = 314; // 2 * π * r (where r=50)
-        const offset = circumference - (percentage / 100) * circumference;
-        circle.style.strokeDashoffset = offset;
-        
-        // Update timestamp
-        const endTime = Date.now();
-        const updateTime = new Date(endTime).toLocaleTimeString();
-        updateTimeEl.textContent = updateTime;
+        updateProgressCircle(percentage);
+        updateTimeEl.textContent = new Date().toLocaleTimeString();
         refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Data';
         
     } catch (error) {
@@ -132,49 +117,57 @@ async function fetchRegionData(regionName, games) {
     const regionCard = document.createElement('div');
     regionCard.className = 'region-card';
     
-    // Create region header
     const regionHeader = document.createElement('div');
     regionHeader.className = 'region-header';
-    
-    const regionTitle = document.createElement('div');
-    regionTitle.className = 'region-name';
-    regionTitle.textContent = regionName;
-    
-    const regionCount = document.createElement('div');
-    regionCount.className = 'region-count';
-    regionCount.textContent = '0 players';
-    
-    regionHeader.appendChild(regionTitle);
-    regionHeader.appendChild(regionCount);
+    regionHeader.innerHTML = `
+        <div class="region-name">${regionName}</div>
+        <div class="region-count">0 players</div>
+    `;
     regionCard.appendChild(regionHeader);
     
-    // Add to DOM early for smoother rendering
+    const serversContainer = document.createElement('div');
+    serversContainer.className = 'servers-container';
+    serversContainer.style.display = 'none';
+    regionCard.appendChild(serversContainer);
+    
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'toggle-servers-btn';
+    toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i> Show Servers';
+    toggleBtn.addEventListener('click', () => toggleServers(serversContainer, toggleBtn));
+    regionCard.appendChild(toggleBtn);
     regionsContainer.appendChild(regionCard);
     
-    // Fetch each game in the region
     const gamePromises = games.map(async (game, index) => {
         try {
-            const players = await fetchGamePlayers(game.id);
+            const { totalPlayers, servers } = await fetchGameServers(game.id);
             successfulFetches++;
-            regionPlayers += players;
-            
+            regionPlayers += totalPlayers;
+
             const gameItem = document.createElement('div');
             gameItem.className = 'game-item';
             gameItem.style.animationDelay = `${animationDelay + (index * 0.05)}s`;
+            gameItem.innerHTML = `
+                <div class="game-name">${game.name}</div>
+                <div class="game-players">${totalPlayers.toLocaleString()}</div>
+            `;
+            regionHeader.nextElementSibling.appendChild(gameItem);
             
-            const gameName = document.createElement('div');
-            gameName.className = 'game-name';
-            gameName.textContent = game.name;
+            const serverDetails = document.createElement('div');
+            serverDetails.className = 'server-details';
+            serverDetails.innerHTML = `
+                <h4>${game.name} Servers</h4>
+                <div class="server-list">
+                    ${servers.map(server => `
+                        <div class="server-item">
+                            <span class="server-name">${server.name || 'Unnamed Server'}</span>
+                            <span class="server-count">${server.playing} players</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            serversContainer.appendChild(serverDetails);
             
-            const gamePlayers = document.createElement('div');
-            gamePlayers.className = 'game-players';
-            gamePlayers.textContent = players.toLocaleString();
-            
-            gameItem.appendChild(gameName);
-            gameItem.appendChild(gamePlayers);
-            regionCard.appendChild(gameItem);
-            
-            return players;
+            return totalPlayers;
         } catch (error) {
             console.error(`Error fetching ${game.name}:`, error);
             return 0;
@@ -184,42 +177,61 @@ async function fetchRegionData(regionName, games) {
     await Promise.all(gamePromises);
     animationDelay += games.length * 0.05;
     
-    // Update region count after all games are processed
-    regionCount.textContent = `${regionPlayers.toLocaleString()} players`;
+    regionHeader.querySelector('.region-count').textContent = 
+        `${regionPlayers.toLocaleString()} players`;
     return regionPlayers;
 }
 
-async function fetchGamePlayers(gameId) {
+async function fetchGameServers(gameId) {
     try {
-        // Roblox API endpoint for game servers
         const url = `https://games.roblox.com/v1/games/${gameId}/servers/Public/0?sortOrder=Asc&limit=100`;
-        
         const response = await fetch(url);
+        
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
+        const servers = data.data || [];
         
-        // Calculate total players across all servers
-        const totalPlayers = data.data.reduce((sum, server) => sum + server.playing, 0);
-        return totalPlayers;
-        
+        return {
+            totalPlayers: servers.reduce((sum, server) => sum + server.playing, 0),
+            servers: servers.map(server => ({
+                name: server.name,
+                playing: server.playing,
+                maxPlayers: server.maxPlayers,
+                id: server.id
+            }))
+        };
     } catch (error) {
-        console.error(`Failed to fetch players for game ${gameId}:`, error);
-        throw error; // Re-throw to be caught in the calling function
+        console.error(`Failed to fetch servers for game ${gameId}:`, error);
+        throw error;
     }
 }
 
-// Error handling for the Roblox API
+function toggleServers(container, button) {
+    if (container.style.display === 'none') {
+        container.style.display = 'block';
+        button.innerHTML = '<i class="fas fa-chevron-up"></i> Hide Servers';
+    } else {
+        container.style.display = 'none';
+        button.innerHTML = '<i class="fas fa-chevron-down"></i> Show Servers';
+    }
+}
+
+function updateProgressCircle(percentage) {
+    const circle = document.querySelector('.circle');
+    const circumference = 314; // 2 * π * r (where r=50)
+    const offset = circumference - (percentage / 100) * circumference;
+    circle.style.strokeDashoffset = offset;
+}
+
+// Error handling
 function handleRobloxAPIError(error) {
     console.error("Roblox API Error:", error);
-    
-    // Check for rate limiting
     if (error.message.includes("429")) {
-        console.warn("Rate limited by Roblox API - consider adding delays between requests");
-        return 0; // Return 0 players if rate limited
+        console.warn("Rate limited by Roblox API");
+        return { totalPlayers: 0, servers: [] };
     }
-    
-    throw error; // Re-throw other errors
+    throw error;
 }
