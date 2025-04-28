@@ -1,4 +1,8 @@
+# netlify.toml
 [build]
   publish = "public"
   functions = "netlify/functions"
-  command = "npm install && npm run build" 
+
+[build.environment]
+  NODE_VERSION = "18"
+  AWS_LAMBDA_JS_RUNTIME = "nodejs18.x"  
